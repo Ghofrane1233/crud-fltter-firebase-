@@ -1,21 +1,24 @@
 // ignore_for_file: depend_on_referenced_packages, prefer_const_constructors
 
+// ignore: unused_import
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:version2/auth/login.dart';
 import 'package:version2/auth/signup.dart';
-import 'package:version2/homepage.dart';
-import 'package:version2/pages/AddProduct.dart';
+import 'package:version2/pages/AddCarPage.dart';
+// import 'package:version2/pages/AddProduct.dart';
+import 'package:version2/pages/Home.dart';
 import 'package:version2/pages/profile.dart';
+import 'package:version2/pages/homepage.dart'; // Assurez-vous que la classe `Homepage` existe ici.
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyCPzkcXQ9fj22-0jSeKmflpRMu9NPT2hmQ", 
-      appId: "com.example.version2", 
-      messagingSenderId: "messagingSenderId", 
+      appId: "1:1234567890:android:abcdef123456", // Remplacez par votre valeur.
+      messagingSenderId: "1234567890", // Remplacez par votre valeur.
       projectId: "formation-3cfae",
     ),
   );
@@ -23,7 +26,7 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key}); // Added const to constructor
+  const MyApp({super.key}); // Ajout de const pour un widget immuable
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -32,12 +35,13 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
-    super.initState(); // Ensure super.initState() is called first
+    super.initState();
   }
 
+  // Liste des produits
   final List<Product> products = [
     Product(
-      imageUrl: 'assets/Group-1.png', 
+      imageUrl: 'assets/Group-1.png',
       price: '\$29.99',
       rating: 4.5,
     ),
@@ -51,9 +55,10 @@ class _MyAppState extends State<MyApp> {
       price: '\$39.99',
       rating: 4.8,
     ),
-    // Add more products as needed
+    // Ajoutez d'autres produits ici
   ];
 
+  // Liste des données pour les images
   final List<Map> imageUrls = [
     {'link': "assets/Group-1.png", 'price': 15, 'name': 'Aymen'},
     {'link': "assets/Group-2.png", 'price': 20, 'name': 'Ali'},
@@ -64,18 +69,20 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Login(),
+      home: Index(),
       routes: {
-        "signup": (context) => const Signup(),
-        "homePage": (context) => Homepage(userId:''),
-        "login": (context) => const Login(),
-        "AddProduct":(context) => AddProduct(),
-        "profile":(context) => profile(userId: "")
+        "signup": (context) => Signup(),
+         "login": (context) => Login(),
+        // "AddProduct": (context) => AddProduct(),
+        "profile": (context) => Profile(userId: ""), 
+      'admin': (context) => AddCarPage(),
+      'user': (context) => Home(),
       },
     );
   }
 }
 
+// Classe représentant un produit
 class Product {
   final String imageUrl;
   final String price;

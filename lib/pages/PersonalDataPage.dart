@@ -10,22 +10,22 @@ class PersonalDataPage extends StatelessWidget {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text('Exemple de Page Flutter'),
+          title: const Text('Exemple de Page Flutter'),
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text(
+              const Text(
                 'Bienvenue sur ma page!',
                 style: TextStyle(fontSize: 24),
               ),
-              SizedBox(height: 20), // Espace entre les éléments
+              const SizedBox(height: 20), // Espace entre les éléments
               ElevatedButton(
                 onPressed: () {
                   // Action à effectuer lors de l'appui sur le bouton
                 },
-                child: Text('Cliquez ici'),
+                child: const Text('Cliquez ici'),
               ),
             ],
           ),

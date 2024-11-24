@@ -4,13 +4,24 @@ import 'package:flutter/material.dart';
 class ProductDetail extends StatelessWidget {
   final Map<String, dynamic> product;
 
-  const ProductDetail(Map products, {super.key, required this.product, required String userId});
+  const ProductDetail({
+    super.key,
+    required this.product,
+    required String userId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(product['name'] ?? 'Product Details'),
+        title: Text(
+          product['name'] ?? 'Product Details',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -27,17 +38,28 @@ class ProductDetail extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               product['name'] ?? 'No Name',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               '\$${product['price'] ?? 0}',
-              style: const TextStyle(fontSize: 20, color: Colors.green),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.green,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               product['description'] ?? 'No Description available',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),

@@ -1,25 +1,20 @@
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
-// ignore: unused_import
-import 'package:version2/components/TextFormField.dart'; 
 import 'personaldatapage.dart';
 import 'community.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ignore: camel_case_types
-class profile extends StatefulWidget {
+class Profile extends StatefulWidget {
   final String userId;
 
-  const profile({super.key, required this.userId});
+  const Profile({super.key, required this.userId});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _profileState createState() => _profileState();
+  _ProfileState createState() => _ProfileState();
 }
 
-// ignore: camel_case_types
-class _profileState extends State<profile> {
+class _ProfileState extends State<Profile> {
   String _result = '';
 
   @override
@@ -29,33 +24,21 @@ class _profileState extends State<profile> {
   }
 
   Future fetchDataById(String userId) async {
-    // ignore: avoid_print
     print(userId);
+    // Fetch the user data from Firestore using the userId.
     await FirebaseFirestore.instance
-    .collection('users')
-    .get()
-    .then((QuerySnapshot querySnapshot) {
-        // ignore: avoid_function_literals_in_foreach_calls
-        querySnapshot.docs.forEach((doc) {
-            // ignore: avoid_print
-            print(doc["name"]);
-                setState(() {
-        _result = doc['name'];
-      });     
+        .collection('users')
+        .doc(userId)  // Fetch specific document using userId
+        .get()
+        .then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        setState(() {
+          _result = doc['name']; // Extracting 'name' field from the document
         });
+      } else {
+        print("User not found");
+      }
     });
-    // DocumentSnapshot doc = 
-    // await FirebaseFirestore.instance.collection('users').doc(userId).get().then((DocumentSnapshot documentSnapshot) {
-    //   print(documentSnapshot.data());
-    //    if (documentSnapshot.exists) {
-    //     print('Document exists on the database');
-    //   }
-    // });
-    // if (doc.exists) {
-    //   return doc['name']; // Replace 'name' with the actual field name you want to retrieve
-    // } else {
-    //   throw Exception('Document non trouvé');
-    // }
   }
 
   @override
@@ -75,7 +58,6 @@ class _profileState extends State<profile> {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               // Navigate back to the login screen
-              // ignore: use_build_context_synchronously
               Navigator.pushReplacementNamed(context, 'login');
             },
           ),
@@ -95,7 +77,7 @@ class _profileState extends State<profile> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => PersonalDataPage()), // Ensure PersonalDataPage is a const constructor
+                        MaterialPageRoute(builder: (context) =>  PersonalDataPage()), // Ensure PersonalDataPage is a const constructor
                       );
                     },
                   ),
@@ -126,7 +108,7 @@ class _profileState extends State<profile> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Community()),
+                        MaterialPageRoute(builder: (context) =>  Community()),
                       );
                     },
                   ),
@@ -185,9 +167,8 @@ class _profileState extends State<profile> {
         color: const Color.fromARGB(255, 201, 213, 255),
         borderRadius: BorderRadius.circular(8.0),
       ),
-      // ignore: prefer_const_constructors
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           FaIcon(
             FontAwesomeIcons.headphonesAlt,
             color: Colors.blue,

@@ -1,194 +1,162 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:version2/components/TextFormField.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Signup extends StatefulWidget {
-  // ignore: use_super_parameters
-  const Signup({Key? key}) : super(key: key);
-
   @override
-  State<Signup> createState() => _SignupState();
+  _SignupState createState() => _SignupState();
 }
 
 class _SignupState extends State<Signup> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _roleController = TextEditingController(); // For assigning user role
 
-  @override
-  void initState() {
-    super.initState();
-    FirebaseAuth.instance.signOut();
-  }
+  // SignUp function
+  Future<void> _signUp() async {
+    // Validation of the input fields
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty || _roleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Veuillez remplir tous les champs."),
+      ));
+      return;
+    }
 
-  Future<void> addUser(String name, String phone, String email) async {
     try {
-      await _firestore.collection('users').add({
-        'name': name,
-        'phone': phone,
-        'email': email,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User added successfully!")),
-      );
-    } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to add user: $e")),
-      );
-    }
-  }
-
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      await registerUser();
-      await addUser(
-        _nameController.text,
-        _phoneController.text,
-        _emailController.text,
+      // Create the user with email and password
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      // Clear the form fields after submission
-      _nameController.clear();
-      _phoneController.clear();
-      _emailController.clear();
-      _passwordController.clear();
-      _confirmPasswordController.clear();
-    }
-  }
+      User? user = userCredential.user;
 
-  Future<UserCredential?> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+      if (user != null) {
+        // Store additional data in Firestore (e.g., role)
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'role': _roleController.text.trim(),
+        });
 
-      if (googleAuth == null) return null;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Inscription réussie !"),
+        ));
 
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      return await FirebaseAuth.instance.signInWithCredential(credential);
-    } catch (e) {
-      // ignore: avoid_print
-      print('Google sign-in failed: $e');
-      return null;
-    }
-  }
-
-  Future<void> registerUser() async {
-    if (_passwordController.text == _confirmPasswordController.text) {
-      try {
-        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-
-        // ignore: avoid_print
-        print('User created: ${credential.user?.uid}');
-        await credential.user?.sendEmailVerification();
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).pushReplacementNamed("login");
-      } on FirebaseAuthException catch (error) {
-        if (error.code == 'email-already-in-use') {
-          // ignore: avoid_print
-          print("The account already exists for that email.");
-        } else {
-          // ignore: avoid_print
-          print("Error: ${error.message}");
-        }
+        // Optionally, navigate to another page after sign-up
+        Navigator.pushReplacementNamed(context, '/login'); // Navigate to login page
       }
-    } else {
-      // ignore: avoid_print
-      print("Passwords do not match.");
+    } catch (e) {
+      // Handle error
+      print("Erreur lors de l'inscription : $e");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Erreur lors de l'inscription. Vérifiez vos informations."),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        margin: const EdgeInsets.only(top: 50, right: 30, left: 30),
-        child: ListView(
-          children: [
-            Form(
-              key: _formKey,
+      appBar: AppBar(
+        title: const Text("Inscription"),
+        backgroundColor: Colors.blueAccent,
+        elevation: 0,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  CustomTextFormField(
-                    hintText: 'Name',
-                    mycontroller: _nameController,
-                    isObscure: false,
+                  Text(
+                    "Créez votre compte",
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 10),
-                    child: CustomTextFormField(
-                      hintText: 'Email',
-                      mycontroller: _emailController,
-                      isObscure: false,
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: "Mot de passe",
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _roleController,
+                    decoration: InputDecoration(
+                      labelText: "Rôle (admin/user)",
+                      prefixIcon: Icon(Icons.account_circle),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
                     ),
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 10),
-                    child: CustomTextFormField(
-                      hintText: 'Phone',
-                      mycontroller: _phoneController,
-                      isObscure: false,
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: _signUp,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50), backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
                     ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 10),
-                    child: CustomTextFormField(
-                      hintText: 'Password',
-                      mycontroller: _passwordController,
-                      isObscure: true,
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 10),
-                    child: CustomTextFormField(
-                      hintText: 'Confirm Password',
-                      mycontroller: _confirmPasswordController,
-                      isObscure: true,
+                    child: const Text(
+                      "S'inscrire",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  MaterialButton(
-                    color: Colors.blue[400],
-                    textColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text("Signup"),
-                    onPressed: () async {
-                      await _submitForm();
-                    },
-                  ),
-                  MaterialButton(
-                    color: Colors.blue[400],
-                    textColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text("Sign In With Google"),
-                    onPressed: () async {
-                      await signInWithGoogle();
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Vous avez déjà un compte?"),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                        child: const Text(
+                          "Se connecter",
+                          style: TextStyle(color: Colors.blueAccent),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

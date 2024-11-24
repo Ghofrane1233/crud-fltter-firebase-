@@ -1,150 +1,176 @@
-// ignore_for_file: use_build_context_synchronously
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:version2/components/TextFormField.dart';
-import 'package:version2/homepage.dart';
-import 'signup.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:version2/auth/signup.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  _LoginState createState() => _LoginState();
 }
 
 class _LoginState extends State<Login> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  String _message = '';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  @override
-  void initState() {
-        FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (user == null) {
-        // ignore: avoid_print
-        print('User is currently signed out!');
-      } else {
-        // ignore: avoid_print
-        print('User is signed in!');
-        Navigator.of(context).pushNamed('homePage');
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Veuillez remplir tous les champs."),
+      ));
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
+
+        if (userDoc.exists) {
+          String role = userDoc['role'];
+
+          if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, 'admin');
+          } else if (role == 'user') {
+            Navigator.pushReplacementNamed(context, 'user');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  "Rôle inconnu. Veuillez contacter l'administrateur."),
+            ));
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Utilisateur introuvable."),
+          ));
+        }
       }
-    });
-    super.initState();
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = "Utilisateur non trouvé.";
+          break;
+        case 'wrong-password':
+          errorMessage = "Mot de passe incorrect.";
+          break;
+        default:
+          errorMessage = "Erreur de connexion. Veuillez réessayer.";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(errorMessage),
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Une erreur s'est produite. Veuillez réessayer."),
+      ));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Login"),
+        title: const Text("Connexion", style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF2972FF),
+        elevation: 0,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Form(
-                child: Column(
-                  children: [
-                    CustomTextFormField(
-                      hintText: 'Email',
-                      mycontroller: emailController,
-                      isObscure: false, // Changed to false for email field
-                    ),
-                    const SizedBox(height: 20),
-                    CustomTextFormField(
-                      hintText: 'Password',
-                      mycontroller: passwordController,
-                      isObscure: true,
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        // Add your forgot password logic here
-                      },
-                      child: const Text("Forgot Password?"),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 18, 119, 212),
-                ),
-                onPressed: () async {
-                  // Validate email and password
-                  if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-                    setState(() {
-                      _message = 'Please fill the Textfields.';
-                    });
-                    return;
-                  }
+              const SizedBox(height: 40),
+              // Logo
+                      const SizedBox(height: 40),
 
-                  try {
-                    // Attempt to sign in
-                    final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                      email: emailController.text,
-                      password: passwordController.text,
-                    );
-
-                    String uid = credential.user!.uid;
-
-                    // Navigate to Home after successful login
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Homepage(userId:uid), // Pass uid and userName here
-                      ),
-                    );
-                  } on FirebaseAuthException catch (e) {
-                    setState(() {
-                      // Set error messages based on exception
-                      if (e.code == 'user-not-found') {
-                        _message = 'No user found for that email.';
-                      } else if (e.code == 'wrong-password') {
-                        _message = 'Wrong password provided for that user.';
-                      } else {
-                        _message = 'An error occurred. Please try again.';
-                      }
-                    });
-                  }
-                },
-                child: const Text(
-                  "Login",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              if (_message.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text(
-                    _message,
-                    style: const TextStyle(color: Colors.red),
+              // Email field
+              TextField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.white,
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFF2972FF)),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
                   ),
                 ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ),
-                onPressed: () {
-                  // Add login with Google logic here
-                },
-                child: const Text(
-                  "Login with Google",
-                  style: TextStyle(color: Colors.white),
-                ),
+                keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.black),
               ),
+              const SizedBox(height: 20),
+
+              // Password field
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: "Mot de passe",
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.white,
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0xFF2972FF)),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.black),
+              ),
+              const SizedBox(height: 30),
+
+              // Sign Up redirect button
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const Signup()),
+                    MaterialPageRoute(builder: (context) => Signup()),
                   );
                 },
-                child: const Text("Don't have an account? Sign up here"),
+                child: const Text(
+                  "Créer un compte",
+                  style: TextStyle(
+                    color: Color(0xFF2972FF),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Login button
+              ElevatedButton(
+                onPressed: _login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF2972FF),
+                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                ),
+                child: const Text(
+                  "Se connecter",
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ],
           ),
